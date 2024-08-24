@@ -129,8 +129,8 @@ mod imp {
                     _ => unreachable!(),
                 });
 
-            ports_out.sort_unstable_by_key(|port| port.name());
-            ports_in.sort_unstable_by_key(|port| port.name());
+            ports_out.sort_unstable_by(|&a, &b| natord::compare(&a.name(), &b.name()));
+            ports_in.sort_unstable_by(|&a, &b| natord::compare(&a.name(), &b.name()));
 
             // In case no ports have been added to the port, hide the seperator as it is not needed
             self.separator
