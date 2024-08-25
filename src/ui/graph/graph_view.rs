@@ -787,7 +787,10 @@ impl GraphView {
             420.0
         };
 
-        let y = imp
+        // FIXME: We are currently using a constant 120 for the height of the nodes, this could cause problems for nodes with a lot of ports.
+        let node_height = 120.0;
+
+        let mut column = imp
             .nodes
             .borrow()
             .iter()
@@ -800,11 +803,24 @@ impl GraphView {
                 // Only look for other nodes that have a similar x coordinate
                 (x - x2).abs() < 50.0
             })
-            .max_by(|y1, y2| {
-                // Get max in column
-                y1.partial_cmp(y2).unwrap_or(Ordering::Equal)
+            .collect::<Vec<_>>();
+        column
+            .sort_unstable_by(|(_, a_y), (_, b_y)| a_y.partial_cmp(b_y).unwrap_or(Ordering::Less));
+        let y = column
+            .windows(2)
+            .map(|w| {
+                // Calculate space between this node and the next
+                let (a_y, b_y) = (w[0].1, w[1].1);
+                let diff_next = b_y - a_y;
+                (a_y, diff_next)
             })
-            .map_or(20_f32, |(_x, y)| y + 120.0);
+            .find(|(_y, diff_next)| *diff_next >= 2.0 * node_height)
+            .map_or(
+                // If we didn't find enough space between nodes, append to bottom
+                column.last().map_or(20_f32, |(_x, y)| y + node_height),
+                // Put new node after below the node we found
+                |(y, _)| y + node_height,
+            );
 
         imp.nodes.borrow_mut().insert(node, Point::new(x, y));
     }
