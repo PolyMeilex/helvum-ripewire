@@ -1,3 +1,9 @@
+# WIP
+
+This is fully working helvium but without libpipewire, this is just an experiment of how [RipeWire](https://github.com/PolyMeilex/RipeWire) API works like in practice.
+
+---
+
 Helvum is a GTK-based patchbay for pipewire, inspired by the JACK tool [catia](https://kx.studio/Applications:Catia).
 
 ![Screenshot](docs/screenshot.png)
