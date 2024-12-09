@@ -20,7 +20,7 @@ mod pipewire_connection;
 mod ui;
 
 use adw::{gtk, prelude::*};
-use pipewire::spa::{param::format::MediaType, utils::Direction};
+use ripewire::reexports::libspa_consts::{SpaDirection, SpaMediaType};
 
 /// Messages sent by the GTK thread to notify the pipewire thread.
 #[derive(Debug, Clone)]
@@ -50,18 +50,18 @@ pub enum PipewireMessage {
         id: u32,
         node_id: u32,
         name: String,
-        direction: Direction,
+        direction: SpaDirection,
     },
     PortFormatChanged {
         id: u32,
-        media_type: MediaType,
+        media_type: SpaMediaType,
     },
     LinkAdded {
         id: u32,
         port_from: u32,
         port_to: u32,
         active: bool,
-        media_type: MediaType,
+        media_type: SpaMediaType,
     },
     LinkStateChanged {
         id: u32,
@@ -69,7 +69,7 @@ pub enum PipewireMessage {
     },
     LinkFormatChanged {
         id: u32,
-        media_type: MediaType,
+        media_type: SpaMediaType,
     },
     NodeRemoved {
         id: u32,
@@ -123,7 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Start the pipewire thread with channels in both directions.
 
     let (gtk_sender, gtk_receiver) = async_channel::unbounded();
-    let (pw_sender, pw_receiver) = pipewire::channel::channel();
+    let (pw_sender, pw_receiver) = calloop::channel::channel();
     let pw_thread =
         std::thread::spawn(move || pipewire_connection::thread_main(gtk_sender, pw_receiver));
 

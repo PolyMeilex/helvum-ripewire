@@ -15,7 +15,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use adw::{glib, gtk, prelude::*, subclass::prelude::*};
-use pipewire::spa::utils::Direction;
+use ripewire::reexports::libspa_consts::{SpaDirection, SpaEnum};
 
 use super::Port;
 
@@ -117,17 +117,16 @@ mod imp {
             let mut ports_out = Vec::new();
             let mut ports_in = Vec::new();
 
-            ports
-                .iter()
-                .for_each(|port| match Direction::from_raw(port.direction()) {
-                    Direction::Output => {
+            ports.iter().for_each(|port| {
+                match SpaEnum::<SpaDirection>::from_raw(port.direction()).unwrap() {
+                    SpaDirection::Output => {
                         ports_out.push(port);
                     }
-                    Direction::Input => {
+                    SpaDirection::Input => {
                         ports_in.push(port);
                     }
-                    _ => unreachable!(),
-                });
+                }
+            });
 
             ports_out.sort_unstable_by(|&a, &b| natord::compare(&a.name(), &b.name()));
             ports_in.sort_unstable_by(|&a, &b| natord::compare(&a.name(), &b.name()));

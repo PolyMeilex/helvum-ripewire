@@ -16,16 +16,18 @@
 
 use adw::{glib, prelude::*, subclass::prelude::*};
 
-use pipewire::channel::Sender as PwSender;
+use calloop::channel::Sender as PwSender;
 
 use crate::{ui::graph::GraphView, GtkMessage, PipewireMessage};
 
 mod imp {
+    use ripewire::reexports::libspa_consts::{SpaDirection, SpaMediaType};
+
     use super::*;
 
     use std::{cell::OnceCell, cell::RefCell, collections::HashMap};
 
-    use crate::{ui::graph, MediaType, NodeType};
+    use crate::{ui::graph, NodeType};
 
     #[derive(Default, glib::Properties)]
     #[properties(wrapper_type = super::GraphManager)]
@@ -150,13 +152,7 @@ mod imp {
         }
 
         /// Add a new port to the view.
-        fn add_port(
-            &self,
-            id: u32,
-            name: &str,
-            node_id: u32,
-            direction: pipewire::spa::utils::Direction,
-        ) {
+        fn add_port(&self, id: u32, name: &str, node_id: u32, direction: SpaDirection) {
             log::info!("Adding port to graph: id {}", id);
 
             let mut items = self.items.borrow_mut();
@@ -192,7 +188,7 @@ mod imp {
             node.add_port(port);
         }
 
-        fn port_media_type_changed(&self, id: u32, media_type: MediaType) {
+        fn port_media_type_changed(&self, id: u32, media_type: SpaMediaType) {
             let items = self.items.borrow();
 
             let Some(port) = items.get(&id) else {
@@ -204,7 +200,7 @@ mod imp {
                 return;
             };
 
-            port.set_media_type(media_type.as_raw())
+            port.set_media_type(media_type as u32)
         }
 
         /// Remove the port with the id `id` from the node with the id `node_id`
@@ -241,7 +237,7 @@ mod imp {
             output_port_id: u32,
             input_port_id: u32,
             active: bool,
-            media_type: MediaType,
+            media_type: SpaMediaType,
         ) {
             log::info!("Adding link to graph: id {}", id);
 
@@ -299,11 +295,7 @@ mod imp {
             link.set_active(active);
         }
 
-        fn link_format_changed(
-            &self,
-            id: u32,
-            media_type: pipewire::spa::param::format::MediaType,
-        ) {
+        fn link_format_changed(&self, id: u32, media_type: SpaMediaType) {
             let items = self.items.borrow();
 
             let Some(link) = items.get(&id) else {

@@ -15,7 +15,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use adw::{glib, prelude::*, subclass::prelude::*};
-use pipewire::spa::param::format::MediaType;
+use ripewire::reexports::libspa_consts::{SpaEnum, SpaMediaType};
 
 use super::Port;
 
@@ -30,7 +30,7 @@ mod imp {
         pub output_port: glib::WeakRef<Port>,
         pub input_port: glib::WeakRef<Port>,
         pub active: Cell<bool>,
-        pub media_type: Cell<MediaType>,
+        pub media_type: Cell<SpaMediaType>,
     }
 
     impl Default for Link {
@@ -39,7 +39,7 @@ mod imp {
                 output_port: glib::WeakRef::default(),
                 input_port: glib::WeakRef::default(),
                 active: Cell::default(),
-                media_type: Cell::new(MediaType::Unknown),
+                media_type: Cell::new(SpaMediaType::Unknown),
             }
         }
     }
@@ -66,7 +66,7 @@ mod imp {
                         .flags(glib::ParamFlags::READWRITE)
                         .build(),
                     glib::ParamSpecUInt::builder("media-type")
-                        .default_value(MediaType::Unknown.as_raw())
+                        .default_value(SpaMediaType::Unknown as u32)
                         .flags(glib::ParamFlags::READWRITE)
                         .build(),
                 ]
@@ -80,7 +80,7 @@ mod imp {
                 "output-port" => self.output_port.upgrade().to_value(),
                 "input-port" => self.input_port.upgrade().to_value(),
                 "active" => self.active.get().to_value(),
-                "media-type" => self.media_type.get().as_raw().to_value(),
+                "media-type" => (self.media_type.get() as u32).to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -92,7 +92,7 @@ mod imp {
                 "active" => self.active.set(value.get().unwrap()),
                 "media-type" => self
                     .media_type
-                    .set(MediaType::from_raw(value.get().unwrap())),
+                    .set(SpaEnum::<SpaMediaType>::from_raw(value.get().unwrap()).unwrap()),
                 _ => unimplemented!(),
             }
         }
@@ -132,12 +132,12 @@ impl Link {
         self.set_property("active", active);
     }
 
-    pub fn media_type(&self) -> MediaType {
-        MediaType::from_raw(self.property("media-type"))
+    pub fn media_type(&self) -> SpaMediaType {
+        SpaEnum::<SpaMediaType>::from_raw(self.property("media-type")).unwrap()
     }
 
-    pub fn set_media_type(&self, media_type: MediaType) {
-        self.set_property("media-type", media_type.as_raw())
+    pub fn set_media_type(&self, media_type: SpaMediaType) {
+        self.set_property("media-type", media_type as u32)
     }
 }
 

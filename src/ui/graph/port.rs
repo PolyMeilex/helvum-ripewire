@@ -21,7 +21,7 @@ use adw::{
     prelude::*,
     subclass::prelude::*,
 };
-use pipewire::spa::utils::Direction;
+use ripewire::reexports::libspa_consts::{SpaDirection, SpaEnum, SpaMediaType};
 
 use super::PortHandle;
 
@@ -31,7 +31,6 @@ mod imp {
     use std::cell::{Cell, OnceCell};
 
     use once_cell::sync::Lazy;
-    use pipewire::spa::{param::format::MediaType, utils::Direction};
 
     /// Graphical representation of a pipewire port.
     #[derive(gtk::CompositeTemplate, glib::Properties)]
@@ -42,17 +41,17 @@ mod imp {
         pub(super) pipewire_id: OnceCell<u32>,
         #[property(
             type = u32,
-            get = |_| self.media_type.get().as_raw(),
+            get = |_| self.media_type.get() as u32,
             set = Self::set_media_type
         )]
-        pub(super) media_type: Cell<MediaType>,
+        pub(super) media_type: Cell<SpaMediaType>,
         #[property(
             type = u32,
-            get = |_| self.direction.get().as_raw(),
+            get = |_| self.direction.get() as u32,
             set = Self::set_direction,
             construct_only
         )]
-        pub(super) direction: Cell<Direction>,
+        pub(super) direction: Cell<SpaDirection>,
         #[property(
             name = "name", type = String,
             get = |this: &Self| this.label.text().to_string(),
@@ -71,8 +70,8 @@ mod imp {
         fn default() -> Self {
             Self {
                 pipewire_id: OnceCell::default(),
-                media_type: Cell::new(MediaType::Unknown),
-                direction: Cell::new(Direction::Output),
+                media_type: Cell::new(SpaMediaType::Unknown),
+                direction: Cell::new(SpaDirection::Output),
                 label: TemplateChild::default(),
                 handle: TemplateChild::default(),
             }
@@ -163,8 +162,8 @@ mod imp {
             let (_, nat_handle_width, _, _) =
                 self.handle.measure(gtk::Orientation::Horizontal, width);
 
-            match Direction::from_raw(self.obj().direction()) {
-                Direction::Input => {
+            match SpaEnum::<SpaDirection>::from_raw(self.obj().direction()).unwrap() {
+                SpaDirection::Input => {
                     let alloc = gtk::Allocation::new(
                         -nat_handle_width / 2,
                         (height - nat_handle_height) / 2,
@@ -181,7 +180,7 @@ mod imp {
                     );
                     self.label.size_allocate(&alloc, -1);
                 }
-                Direction::Output => {
+                SpaDirection::Output => {
                     let alloc = gtk::Allocation::new(
                         width - (nat_handle_width / 2),
                         (height - nat_handle_height) / 2,
@@ -193,7 +192,6 @@ mod imp {
                     let alloc = gtk::Allocation::new(0, 0, width - (nat_handle_width / 2), height);
                     self.label.size_allocate(&alloc, -1);
                 }
-                _ => unreachable!(),
             }
         }
     }
@@ -272,11 +270,11 @@ mod imp {
                     return false;
                 }
 
-                let (output_port, input_port) = match Direction::from_raw(port.direction()) {
-                    Direction::Output => (&port, &other_port),
-                    Direction::Input => (&other_port, &port),
-                    _ => unreachable!(),
-                };
+                let (output_port, input_port) =
+                    match SpaEnum::<SpaDirection>::from_raw(port.direction()).unwrap() {
+                        SpaDirection::Output => (&port, &other_port),
+                        SpaDirection::Input => (&other_port, &port),
+                    };
 
                 port.emit_by_name::<()>(
                     "port-toggled",
@@ -289,7 +287,7 @@ mod imp {
         }
 
         fn set_media_type(&self, media_type: u32) {
-            let media_type = MediaType::from_raw(media_type);
+            let media_type = SpaEnum::<SpaMediaType>::from_raw(media_type).unwrap();
 
             self.media_type.set(media_type);
 
@@ -299,28 +297,29 @@ mod imp {
 
             // Color the port according to its media type.
             match media_type {
-                MediaType::Video => self.handle.add_css_class("video"),
-                MediaType::Audio => self.handle.add_css_class("audio"),
-                MediaType::Application | MediaType::Stream => self.handle.add_css_class("midi"),
+                SpaMediaType::Video => self.handle.add_css_class("video"),
+                SpaMediaType::Audio => self.handle.add_css_class("audio"),
+                SpaMediaType::Application | SpaMediaType::Stream => {
+                    self.handle.add_css_class("midi")
+                }
                 _ => {}
             }
         }
 
         fn set_direction(&self, direction: u32) {
-            let direction = Direction::from_raw(direction);
+            let direction = SpaEnum::<SpaDirection>::from_raw(direction).unwrap();
 
             self.direction.set(direction);
 
             match direction {
-                Direction::Input => {
+                SpaDirection::Input => {
                     self.obj().set_halign(gtk::Align::Start);
                     self.label.set_halign(gtk::Align::Start);
                 }
-                Direction::Output => {
+                SpaDirection::Output => {
                     self.obj().set_halign(gtk::Align::End);
                     self.label.set_halign(gtk::Align::End);
                 }
-                _ => unreachable!(),
             }
         }
     }
@@ -332,10 +331,10 @@ glib::wrapper! {
 }
 
 impl Port {
-    pub fn new(id: u32, name: &str, direction: Direction) -> Self {
+    pub fn new(id: u32, name: &str, direction: SpaDirection) -> Self {
         glib::Object::builder()
             .property("pipewire-id", id)
-            .property("direction", direction.as_raw())
+            .property("direction", direction as u32)
             .property("name", name)
             .build()
     }
@@ -347,12 +346,11 @@ impl Port {
         let padding_left: f32 = style_context.padding().left().into();
         let border_left: f32 = style_context.border().left().into();
 
-        let direction = Direction::from_raw(self.direction());
+        let direction = SpaEnum::<SpaDirection>::from_raw(self.direction()).unwrap();
         graphene::Point::new(
             match direction {
-                Direction::Output => self.width() as f32 + padding_right + border_right,
-                Direction::Input => 0.0 - padding_left - border_left,
-                _ => unreachable!(),
+                SpaDirection::Output => self.width() as f32 + padding_right + border_right,
+                SpaDirection::Input => 0.0 - padding_left - border_left,
             },
             self.height() as f32 / 2.0,
         )

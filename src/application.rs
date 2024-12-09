@@ -21,8 +21,8 @@ use adw::{
     prelude::*,
     subclass::prelude::*,
 };
+use calloop::channel::Sender;
 use log::error;
-use pipewire::channel::Sender;
 
 use crate::{graph_manager::GraphManager, ui, GtkMessage, PipewireMessage};
 

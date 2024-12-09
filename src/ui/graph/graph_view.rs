@@ -42,8 +42,7 @@ mod imp {
     use adw::gtk::gdk::{self};
     use log::warn;
     use once_cell::sync::Lazy;
-    use pipewire::spa::param::format::MediaType;
-    use pipewire::spa::utils::Direction;
+    use ripewire::reexports::libspa_consts::{SpaDirection, SpaEnum, SpaMediaType};
 
     pub struct Colors {
         audio: gdk::RGBA,
@@ -53,11 +52,11 @@ mod imp {
     }
 
     impl Colors {
-        pub fn color_for_media_type(&self, media_type: MediaType) -> &gdk::RGBA {
+        pub fn color_for_media_type(&self, media_type: SpaMediaType) -> &gdk::RGBA {
             match media_type {
-                MediaType::Audio => &self.audio,
-                MediaType::Video => &self.video,
-                MediaType::Stream | MediaType::Application => &self.midi,
+                SpaMediaType::Audio => &self.audio,
+                SpaMediaType::Video => &self.video,
+                SpaMediaType::Stream | SpaMediaType::Application => &self.midi,
                 _ => &self.unknown,
             }
         }
@@ -589,13 +588,15 @@ mod imp {
             });
             let other_anchor = picked_port_anchor.unwrap_or(drag_cursor);
 
-            let (output_anchor, input_anchor) = match Direction::from_raw(port.direction()) {
-                Direction::Output => (&port_anchor, &other_anchor),
-                Direction::Input => (&other_anchor, &port_anchor),
-                _ => unreachable!(),
-            };
+            let (output_anchor, input_anchor) =
+                match SpaEnum::<SpaDirection>::from_raw(port.direction()).unwrap() {
+                    SpaDirection::Output => (&port_anchor, &other_anchor),
+                    SpaDirection::Input => (&other_anchor, &port_anchor),
+                };
 
-            let color = &colors.color_for_media_type(MediaType::from_raw(port.media_type()));
+            let color = &colors.color_for_media_type(
+                SpaEnum::<SpaMediaType>::from_raw(port.media_type()).unwrap(),
+            );
 
             self.draw_link(link_cr, output_anchor, input_anchor, false, color);
         }

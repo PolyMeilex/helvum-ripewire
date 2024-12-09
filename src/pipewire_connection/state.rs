@@ -18,6 +18,7 @@ use std::collections::HashMap;
 
 /// Any pipewire item we need to keep track of.
 /// These will be saved in the `State` struct associated with their id.
+#[derive(Debug)]
 pub(super) enum Item {
     Node,
     Port {
